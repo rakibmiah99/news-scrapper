@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Facebook news post automation: fetch unpublished news, generate/post the
-Facebook template image for each, then bulk-update their published status."""
+Facebook template image for each, then immediately update that news item's
+published status as soon as the post is created."""
 
-import json
-import os
 import random
 import time
 from datetime import datetime
@@ -14,16 +13,12 @@ import requests
 # Config - fill these in before running
 # ---------------------------------------------------------------------------
 PAGE_ID = "1"
-AUTHORIZATION_TOKEN = "Bearer 3|bcJwa21uJ6VlBwfL5Q8DZqcW2YMLgRGRnibWaUqn3d0bf57a"
+AUTHORIZATION_TOKEN = "Bearer 1|DNNj50TkfUYNjBJcSK7A76n6YSK2Zk2gasUdw5Wn5aaccfc4"
 
-NEWS_ARCHIVES_URL = "https://takebackbangladesh.com/api/news-archives"
-GENERATE_IMAGE_URL = "http://127.0.0.1:8000/api/templates/8/generate-image"
-BULK_UPDATE_PUBLISHED_URL = "https://takebackbangladesh.com/api/news-archives/bulk-update-published"
-DELETE_NEWS_ARCHIVE_URL = "https://takebackbangladesh.com/api/news-archives/delete/{news_id}"
-
-BULK_UPDATE_JSONL_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "news_archive_published_bulk_update.jsonl"
-)
+NEWS_ARCHIVES_URL = "https://www.takebackbangladesh.com/api/news-archives"
+GENERATE_IMAGE_URL = "https://fb.programmingwithrakib.com/api/templates/1/generate-image"
+UPDATE_PUBLISHED_URL = "https://www.takebackbangladesh.com/api/news-archives/published"
+DELETE_NEWS_ARCHIVE_URL = "https://www.takebackbangladesh.com/api/news-archives/delete/{news_id}"
 
 # ---------------------------------------------------------------------------
 # Rate-limit avoidance: randomized delay between consecutive Facebook posts.
@@ -127,8 +122,9 @@ def generate_facebook_post(news):
     return response.json()
 
 
-def bulk_update_published(entries):
-    return requests.post(BULK_UPDATE_PUBLISHED_URL, json=entries, timeout=30)
+def update_news_published(news_id, is_published):
+    payload = {"id": news_id, "is_published": is_published}
+    return requests.post(UPDATE_PUBLISHED_URL, json=payload, timeout=30)
 
 
 def delete_news_archive(news_id, title, published_at, image_url):
@@ -141,22 +137,6 @@ def delete_news_archive(news_id, title, published_at, image_url):
     return requests.post(
         DELETE_NEWS_ARCHIVE_URL.format(news_id=news_id), json=payload, timeout=30
     )
-
-
-def append_published_result(news_id, is_published):
-    with open(BULK_UPDATE_JSONL_PATH, "a", encoding="utf-8") as f:
-        f.write(json.dumps({"news_id": news_id, "is_published": is_published}) + "\n")
-
-
-def read_published_results():
-    if not os.path.exists(BULK_UPDATE_JSONL_PATH):
-        return []
-    with open(BULK_UPDATE_JSONL_PATH, "r", encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
-
-
-def clear_published_results():
-    open(BULK_UPDATE_JSONL_PATH, "w", encoding="utf-8").close()
 
 
 def process_news_batch(news_list):
@@ -184,24 +164,21 @@ def process_news_batch(news_list):
             print(f"[{news['id']}] {result.get('message')}")
 
             if result.get("data", {}).get("page_posted") is True:
-                append_published_result(news["id"], True)
+                try:
+                    response = update_news_published(news["id"], True)
+                    if response.status_code == 200:
+                        print(f"[{news['id']}] marked as published")
+                    else:
+                        print(
+                            f"[{news['id']}] failed to update published status: "
+                            f"status={response.status_code}, body={response.text[:300]}"
+                        )
+                except requests.RequestException as exc:
+                    print(f"[{news['id']}] update published request failed: {exc}")
         except requests.RequestException as exc:
             print(f"[{news['id']}] failed to post: {exc}")
         finally:
             wait_before_next_post()
-
-
-def flush_published_results():
-    entries = read_published_results()
-    if not entries:
-        return
-
-    bulk_body = [{"id": e["news_id"], "is_published": e["is_published"]} for e in entries]
-    response = bulk_update_published(bulk_body)
-    print(f"Bulk update response: status={response.status_code}, body={response.text[:500]}")
-
-    if response.status_code == 200:
-        clear_published_results()
 
 
 def run():
@@ -214,7 +191,6 @@ def run():
 
         print(f"Fetched {len(news_list)} news item(s).")
         process_news_batch(news_list)
-        flush_published_results()
 
 
 if __name__ == "__main__":
