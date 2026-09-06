@@ -1,0 +1,65 @@
+image_thumbnail NULL — Diagnostic Report
+=========================================
+
+Test URL: https://www.ittefaq.com.bd/807751/test-news-title
+Fetched with: requests.get() + normal browser User-Agent
+Status code: 200, page length: 153346 chars (page loads fine, not blocked)
+
+STEP 1 — Does .featured_image exist on the page?
+  soup.find_all(class_="featured_image") -> 1 element found.
+  Tag: <div class="featured_image">
+
+STEP 2 — What is actually inside that div?
+  <div class="featured_image">
+    <span class="jwImgWrap" style="padding-bottom:56.25%">
+      <span data-ari='{"path":"media/2026/09/02/7ad2240829e723528cb5558a3141e69d-6a985f97c1357.jpg?jadewits_media_id=309103", ...}'>
+      </span>
+    </span>
+  </div>
+
+  container.find_all("img") -> 0 <img> tags found.
+
+ROOT CAUSE
+  There is NO <img> tag anywhere inside .featured_image in the raw server
+  HTML. Ittefaq's frontend (jquery.jw.ari.js, "jadewits" image widget) only
+  builds the real <img> element client-side with JavaScript, using the
+  image path stored as a JSON string in the `data-ari` attribute:
+
+    data-ari = {"path": "media/2026/09/02/<hash>.jpg?jadewits_media_id=309103",
+                "ratio": [16,9], "alt": "..."}
+
+  Because requests + BeautifulSoup never execute JavaScript, any selector
+  looking for an <img> tag (e.g. `.featured_image img`,
+  `.featured_image > span > a > img`) will always return None — that's
+  why image_thumbnail kept coming back null, regardless of how deep the
+  selector searched.
+
+HOW THE FULL IMAGE URL IS BUILT
+  Confirmed by cross-referencing other real <img> tags on the same page
+  that DO use the same "media/..." path style with a full domain, e.g.:
+    https://cdn.ittefaqbd.com/contents/uploads/media/2022/06/09/...png
+    https://cdn.ittefaqbd.com/contents/uploads/media/2023/07/27/...png
+
+  So the CDN base is: https://cdn.ittefaqbd.com/contents/uploads/
+
+  Full image URL = CDN base + data-ari's "path" value:
+    https://cdn.ittefaqbd.com/contents/uploads/media/2026/09/02/7ad2240829e723528cb5558a3141e69d-6a985f97c1357.jpg?jadewits_media_id=309103
+
+  Verified with `curl -I` on this exact URL:
+    HTTP/2 200
+    content-type: image/jpeg
+  -> Confirmed real, loadable image.
+
+FIX APPLIED (scraper.py -> extract_image_thumbnail)
+  1. Find the .featured_image container.
+  2. If it contains a real <img> tag (some article types may render one
+     directly), use its src / data-src / data-original / data-lazy-src.
+  3. Otherwise, find the descendant tag carrying the `data-ari` attribute,
+     JSON-parse it, pull out "path", and prefix it with
+     "https://cdn.ittefaqbd.com/contents/uploads/".
+  4. Return None only if neither an <img> nor a usable data-ari JSON path
+     is found.
+
+VERIFIED RESULT
+  extract_image_thumbnail(soup) on the same live page now returns:
+    https://cdn.ittefaqbd.com/contents/uploads/media/2026/09/02/7ad2240829e723528cb5558a3141e69d-6a985f97c1357.jpg?jadewits_media_id=309103

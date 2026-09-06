@@ -1,0 +1,177 @@
+- create a new file for facebook news to post automation
+- for get data request example is 
+
+const axios = require('axios');
+
+let config = {
+  method: 'get',
+  maxBodyLength: Infinity,
+  url: 'https://takebackbangladesh.com/api/news-archives',
+  headers: { }
+};
+
+axios.request(config)
+.then((response) => {
+  console.log(JSON.stringify(response.data));
+})
+.catch((error) => {
+  console.log(error);
+});
+
+- response is - 
+[
+    {
+        "id": 1,
+        "title": "প্রধানমন্ত্রিত্ব ছাড়ার ৬ সপ্তাহ পর এমপি পদও ছাড়লেন কিয়ার স্টারমার",
+        "description": "যুক্তরাজ্যের প্রধানমন্ত্রীর পদ ছাড়ার প্রায় ছয় সপ্তাহ পর এবার পার্লামেন্ট সদস্য (এমপি) পদ থেকেও সরে দাঁড়ানোর ঘোষণা দিয়েছেন দেশটির সাবেক প্রধানমন্ত্রী ও লেবার পার্টির সাবেক নেতা কিয়ার স্টারমার। মঙ্গলবার (১ সেপ্টেম্বর) সামাজিক যোগাযোগমাধ্যম ফেসবুকে দেওয়া এক বিবৃতিতে লন্ডনের হলবর্ন অ্যান্ড সেন্ট প্যানক্রাস আসনের এমপি পদ ছাড়ার সিদ্ধান্ত জানান তিনি। এর মধ্য দিয়ে ব্রিটিশ পার্লামেন্টে তার ১১ বছরের সংসদীয় ক্যারিয়ারের সমাপ্তি ঘটল। ফেসবুকে প্রকাশিত বিবৃতিতে স্টারমার উল্লেখ করেন, গ্রীষ্মের অবকাশকালীন সময়ে তিনি নিজের ভবিষ্যৎ কর্মপরিকল্পনা নিয়ে গভীরভাবে চিন্তা করার সুযোগ পেয়েছেন এবং তার মনে হয়েছে সংসদীয় দায়িত্ব থেকে সরে দাঁড়ানোর জন্য এখনই উপযুক্ত সময়। টানা ১১ বছর ধরে হলবর্ন অ্যান্ড সেন্ট প্যানক্রাস আসনের প্রতিনিধিত্ব করতে পারাকে তিনি নিজের জন্য ‘সম্মান ও সৌভাগ্য’ বলে অভিহিত করেন। সংসদ সদস্যের পদ ছাড়লেও রাজনীতি ও আন্তর্জাতিক অঙ্গন থেকে পুরোপুরি বিচ্ছিন্ন হচ্ছেন না স্টারমার। ভবিষ্যতে বৈশ্বিক বিভিন্ন ক্ষেত্রে আরও বেশি সময় দেওয়ার প্রত্যয় ব্যক্ত করে তিনি জানান, আগামী দিনগুলোতে তিনি আন্তর্জাতিক সম্পর্ক, প্রতিরক্ষা, বৈশ্বিক নিরাপত্তা, বাণিজ্য এবং প্রযুক্তি খাতের মতো গুরুত্বপূর্ণ বিষয় নিয়ে কাজ করার পরিকল্পনা করছেন। এর পাশাপাশি নারী ও কন্যাশিশুদের ওপর সহিংসতা বন্ধে তার দীর্ঘদিনের অঙ্গীকার বাস্তবায়নে কাজ চালিয়ে যাবেন। বিবৃতিতে তিনি যুক্তরাজ্যের নতুন প্রধানমন্ত্রী অ্যান্ডি বার্নহাম ও ক্ষমতাসীন লেবার সরকারের প্রতি নিজের অকুণ্ঠ সমর্থনের কথা পুনর্ব্যক্ত করেন। পেশায় জ্যেষ্ঠ আইনজীবী (ব্যারিস্টার) কিয়ার স্টারমার প্রত্যক্ষ রাজনীতিতে যোগ দেওয়ার আগে ইংল্যান্ড ও ওয়েলসের পাবলিক প্রসিকিউশনসের পরিচালক (ডিপিপি) হিসেবে দায়িত্ব পালন করেন। ২০১৫ সালের সাধারণ নির্বাচনে দীর্ঘদিনের লেবার এমপি ফ্রাঙ্ক ডবসনের উত্তরসূরি হিসেবে হলবর্ন অ্যান্ড সেন্ট প্যানক্রাস আসন থেকে প্রথমবারের মতো পার্লামেন্ট সদস্য নির্বাচিত হন তিনি। ২০১৯ সালের জাতীয় নির্বাচনে দলের বিপর্যয়ের পর ২০২০ সালের ৪ এপ্রিল জেরেমি করবিনের স্থলাভিষিক্ত হয়ে লেবার পার্টির নেতৃত্ব গ্রহণ করেন স্টারমার। পরবর্তীতে ২০২৪ সালের ৪ জুলাইয়ের সাধারণ নির্বাচনে লেবার পার্টিকে চার শতাধিক আসনে ঐতিহাসিক জয় এনে দিয়ে কনজারভেটিভ পার্টির টানা ১৪ বছরের শাসনের অবসান ঘটান তিনি এবং পরদিন ৫ জুলাই দেশটির প্রধানমন্ত্রী হিসেবে শপথ নেন। নিজের প্রধানমন্ত্রিত্বের মেয়াদ নিয়ে স্টারমার বলেন, ২০১৯ সালের শোচনীয় অবস্থা থেকে দলকে টেনে তুলে ২০২৪ সালে বিপুল ব্যবধানে ক্ষমতায় আনা তার রাজনৈতিক জীবনের এক বড় প্রাপ্তি। নিজের কার্যকালে জাতীয় অর্থনীতি স্থিতিশীল রাখা, সরকারি সেবা খাতে নতুন বিনিয়োগ, প্রতিরক্ষা ও নিরাপত্তা খাতে বরাদ্দ বৃদ্ধি এবং শিশু দারিদ্র্য হ্রাস করার মতো গুরুত্বপূর্ণ সিদ্ধান্ত বাস্তবায়িত হয়েছে বলে তিনি উল্লেখ করেন। প্রধানমন্ত্রী হিসেবে প্রায় দুই বছর দায়িত্ব পালনের পর ২০২৬ সালের স্থানীয় ও আঞ্চলিক নির্বাচনের ফলাফল এবং দলের অভ্যন্তরীণ চাপের মুখে গত ২২ জুন প্রধানমন্ত্রীর পদ থেকে সরে দাঁড়ানোর ঘোষণা দেন স্টারমার। পরবর্তীতে দলীয় নির্বাচনে অ্যান্ডি বার্নহাম নতুন দলনেতা নির্বাচিত হলে গত ২০ জুলাই আনুষ্ঠানিকভাবে ১০ ডাউনিং স্ট্রিটের কার্যালয় ছাড়েন তিনি। আর আজকের এই ঘোষণার মাধ্যমে ওয়েস্টমিনস্টারে তার সংসদীয় উপস্থিতিরও আনুষ্ঠানিক অবসান ঘটল।",
+        "image_thumbnail": "https://cdn.ittefaqbd.com/contents/uploads/media/2026/09/01/5c6010dd7290ca67df761bcf16cafcb7-6a971208b26e5.jpg?jadewits_media_id=308906",
+        "published_at": "2026-09-01T23:58:38.000000Z",
+        "is_published": false
+    },
+    {
+        "id": 2,
+        "title": "অসুস্থ হয়ে হাসপাতালে ভর্তি বিদ্যুৎ ও জ্বালানিমন্ত্রী টুকু",
+        "description": "শারীরিক অসুস্থতার কারণে রাজধানীর ইব্রাহিম কার্ডিয়াক হাসপাতালে ভর্তি হয়েছেন বিদ্যুৎ, জ্বালানি ও খনিজ সম্পদমন্ত্রী ইকবাল হাসান মাহমুদ টুকু। মঙ্গলবার (১ সেপ্টেম্বর) রাত সাড়ে ১০টার দিকে তাকে হাসপাতালে নেওয়া হয়। মন্ত্রীর ব্যক্তিগত সহকারী আব্দুল্লাহ আল কায়েস বিষয়টি নিশ্চিত করে জানান, ইকবাল হাসান মাহমুদ টুকু গত কয়েক দিন ধরে তীব্র জ্বরে ভুগছিলেন। পরবর্তীতে বিশেষজ্ঞ চিকিৎসকদের পরামর্শ অনুযায়ী প্রয়োজনীয় স্বাস্থ্য পরীক্ষা ও উন্নত চিকিৎসার জন্য তাকে হাসপাতালে ভর্তি করার সিদ্ধান্ত নেওয়া হয়। বর্তমানে তিনি হাসপাতালে বিশেষজ্ঞ চিকিৎসকদের নিবিড় পর্যবেক্ষণে রয়েছেন এবং তার চিকিৎসা কার্যক্রম চলছে। তার দ্রুত আরোগ্য কামনায় পরিবারের পক্ষ থেকে দেশবাসীর কাছে দোয়া চাওয়া হয়েছে।",
+        "image_thumbnail": "https://cdn.ittefaqbd.com/contents/uploads/media/2026/09/02/fb0c69f8cceca88f96916acf3f01a817-6a97164c9658c.jpg?jadewits_media_id=308908",
+        "published_at": "2026-09-02T00:16:35.000000Z",
+        "is_published": false
+    },
+    ....,
+    ....
+]
+
+- after get news data now then each news call another api por news post, following request example, here 
+
+- thumbnail_image = news image_thumbnail url 
+- headline = news title text
+- date = news published_at (only date pick in bangla format like ১৫ আগস্ট, ২০২৬)
+- caption = news title text
+- page id = will provide set in a veriable 
+- comment message =  will provide default null
+
+- Authorization token = will provide set in a variable 
+
+const axios = require('axios');
+let data = JSON.stringify({
+  "thumbnail_image": "https://cdn.ittefaqbd.com/contents/cache/images/1100x0x1/uploads/media/2026/09/04/26d10760c8c55118050d8880992045da-6a9a6cc7ad742.jpg?jadewits_media_id=309340",
+  "headline": "ভিসাপ্রত্যাশী বাংলাদেশিদের সতর্কবার্তা দিলো ভারতীয় হাইকমিশন",
+  "date": "১৫ আগস্ট, ২০২৬",
+  "page_id": "2",
+  "caption": "hello",
+  "comment_message": ""
+});
+
+let config = {
+  method: 'post',
+  maxBodyLength: Infinity,
+  url: 'http://127.0.0.1:8000/api/templates/8/generate-image',
+  headers: { 
+    'Content-Type': 'application/json', 
+    'Authorization': 'Bearer 3|bcJwa21uJ6VlBwfL5Q8DZqcW2YMLgRGRnibWaUqn3d0bf57a'
+  },
+  data : data
+};
+
+axios.request(config)
+.then((response) => {
+  console.log(JSON.stringify(response.data));
+})
+.catch((error) => {
+  console.log(error);
+});
+
+- response example
+{
+    "status": true,
+    "message": "Template image generated successfully.",
+    "data": {
+        "url": "https://pub-07a28761b2e847a1975cd067c0251107.r2.dev/templates/2026/09/488f04ab-8b5f-47b8-ac39-acf0b061fd86.webp",
+        "path": "templates/2026/09/488f04ab-8b5f-47b8-ac39-acf0b061fd86.webp",
+        "template_id": 8,
+        "generation_id": 82,
+        "page_posted": true,
+        "permalink": "https://www.facebook.com/122132472897220634/posts/122132484909220634"
+    }
+}
+
+- here if data.page_posted response true, tumi egulu ke store korbe news_archive_published_bulk_update.jsonl file a 
+
+{"news_id": news_archive id, "is_published": news post response page_posted status}
+
+
+- after finished now bulk update news archive news published status following api, 
+- here data from news_archive_published_bulk_update.jsonl
+
+const axios = require('axios');
+let data = JSON.stringify([
+  {
+    "id": 1,
+    "is_published": true
+  },
+  {
+    "id": 2,
+    "is_published": true
+  }
+]);
+
+let config = {
+  method: 'post',
+  maxBodyLength: Infinity,
+  url: 'https://takebackbangladesh.com/api/news-archives/bulk-update-published',
+  headers: { 
+    'Content-Type': 'application/json'
+  },
+  data : data
+};
+
+axios.request(config)
+.then((response) => {
+  console.log(JSON.stringify(response.data));
+})
+.catch((error) => {
+  console.log(error);
+});
+
+-- reponse - 
+{
+    "updated_count": 2
+}
+
+- if response status 200 then clear news_archive_published_bulk_update.jsonl file, 
+
+then again start from first process from news archive get data, 
+
+when news archive return empty data then stop execution. 
+
+--- 
+
+if news archive image or title or date empty call api and delete that
+
+const axios = require('axios');
+let data = JSON.stringify({
+  "title": "টাইমস স্কয়ারে ছুরিকাঘাতে ব্যাংক অব আমেরিকার ভাইস প্রেসিডেন্ট নিহত",
+  "date": "12026-09-02",
+  "card_type": "portrait",
+  "image_url": "https://cdn.ittefaqbd.com/contents/uploads/media/2026/09/02/f28ae7fd16c86753ef3560db4b280ab8-6a9822f13025f.jpg?jadewits_media_id=309064"
+});
+
+let config = {
+  method: 'post',
+  maxBodyLength: Infinity,
+  url: 'https://takebackbangladesh.com/api/news-archives/delete/49',
+  headers: { 
+    'Content-Type': 'application/json'
+  },
+  data : data
+};
+
+axios.request(config)
+.then((response) => {
+  console.log(JSON.stringify(response.data));
+})
+.catch((error) => {
+  console.log(error);
+});
+
+-- response status 200 -- then execute next. 
+

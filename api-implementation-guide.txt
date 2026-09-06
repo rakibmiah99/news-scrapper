@@ -1,0 +1,30 @@
+for bulk insert 
+url: https://takebackbangladesh.com/api/news-archives/bulk
+method: post
+request body: json array like @bulk-request.json file. 
+
+response status is 2xx is ok, if not 2xx its error. 
+--------------------------
+
+when start scrape first call a api for get start_looping_news_id, 
+
+url: https://takebackbangladesh.com/api/news-archives/last-news-id?website_name=ittefaq
+method: get
+
+response: 2xx (success)
+{
+    "website_name": "ittefaq",
+    "last_archive_news_id": "807559"
+}
+
+here last_archive_news_id hosse news id jar por theke 1 kore bere increment hote thakbe. 
+
+50 ta news scrape korar por tumi data guluke bulk insert korbe tumar jsonl file theke, 
+
+bulk insert korar por tumi abar api call korbe last_archive_news_id kunti tar por theke abar looping gurbe. 
+
+insert korar por tumi ittefaq_news.jsonl file ti empty korbe ebong punorai 50 ti entry dibe. 
+
+jodi kisu looping start houar por r kuno news na pai tahole jeporjonto peyese sheporjontoi store kore. script ti store hobe. 
+
+now implent this. 

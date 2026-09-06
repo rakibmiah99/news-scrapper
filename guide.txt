@@ -1,0 +1,50 @@
+আমাকে একটা Python scraper script লিখে দাও যেটা ittefaq.com.bd থেকে news scrape করবে।
+
+URL PATTERN:
+প্রতিটা news এর জন্য news_id (integer) দিয়ে URL বানাতে হবে:
+https://www.ittefaq.com.bd/{news_id}/test-news-title
+
+শুরু হবে news_id = 807751 থেকে, তারপর ক্রমাগত +1 করে loop চালাতে হবে।
+যদি নির্দিষ্ট end_id না দেওয়া থাকে, তাহলে পরপর কয়েকবার (যেমন ১৫ বার) invalid/empty page পেলে script নিজে থেকে থেমে যাবে।
+
+প্রতিটা page থেকে যা scrape করতে হবে:
+
+1. title:
+   - HTML এ থাকে: <h1 class="title" itemprop="headline">...</h1>
+   - এই tag এর text ই title
+
+2. image_thumbnail:
+   - class="featured_image" > span > a > img  tag খুঁজে বের করতে হবে
+   - সেই img এর src attribute ই image URL
+   - যদি src শুরু হয় "//cdn." দিয়ে, তাহলে সামনে "https://" যোগ করে পূর্ণ URL বানাতে হবে (যেমন //cdn.example.com/img.jpg -> https://cdn.example.com/img.jpg)
+
+3. description (full content):
+   - class="content_detail_content_inner" এই element এর ভেতরে class="jw_article_body" খুঁজতে হবে
+   - jw_article_body এর ভেতরে যত <p> tag আছে, সবগুলোর text একসাথে জোড়া দিয়ে একটা single string বানাতে হবে (description হিসেবে ব্যবহার হবে)
+
+4. published_at:
+   - attribute itemprop="datePublished" যেই tag এ আছে, সেই tag এর "content" attribute থেকে ডেট পাওয়া যাবে
+   - ফরম্যাট থাকে এরকম: 2026-09-02T23:44:00+06:00 (ISO 8601, timezone সহ)
+   - এটাকে convert করতে হবে MySQL/Laravel dateTime format এ: "Y-m-d H:i:s" (যেমন: 2026-09-02 23:44:00)
+
+OUTPUT FORMAT:
+প্রতিটা news এর জন্য নিচের মতো একটা JSON object বানাতে হবে:
+
+{
+  "website_name": "ittefaq",
+  "news_id": "807751",
+  "title": "...",
+  "description": "...",
+  "image_thumbnail": "...",
+  "published_at": "2026-09-02 23:44:00"
+}
+
+REQUIREMENTS:
+- Python এ requests + BeautifulSoup ব্যবহার করবে
+- প্রতিটা request এর মাঝে ১-২ সেকেন্ড random delay দেবে (rate limit avoid করার জন্য)
+- প্রতিটা successful news একটা .jsonl ফাইলে append করে সেভ করবে (এক লাইনে এক JSON), যাতে মাঝপথে script বন্ধ হলেও data হারিয়ে না যায়
+- request fail বা 404/invalid page হলে skip করে পরের news_id তে যাবে, error print করবে
+- title বা description দুটোই None হলে সেটাকে invalid page ধরে skip করবে
+- একটা proper User-Agent header ব্যবহার করবে যাতে block না হয়
+
+শুরুর news_id: 807751

@@ -1,0 +1,60 @@
+Facebook Rate-Limit / Restriction Avoidance Rule
+=================================================
+
+সমস্যা:
+-------
+আগে script প্রতিটা news item এর জন্য generate_facebook_post() ফাংশন কল
+করে সাথে সাথেই পরের item এ চলে যেত। মানে একটার পর একটা পোস্ট কোনো বিরতি
+ছাড়াই খুব দ্রুত (কয়েক সেকেন্ডের মধ্যে) Facebook এ যাচ্ছিল। Facebook এই
+রকম fixed-interval / বট-এর মতো posting pattern দেখলে সেটাকে automated /
+spam আচরণ হিসেবে ধরে নেয় এবং rate limit বা page restriction দিয়ে দেয়।
+
+সমাধান (facebook_news_poster.py তে implement করা হয়েছে):
+----------------------------------------------------------
+প্রতিটা post attempt এর পরে (success বা fail যাই হোক) একটা random সময়
+অপেক্ষা করানো হয়, যাতে posting pattern কখনো একই রকম / predictable না হয়।
+এটার জন্য `wait_before_next_post()` ফাংশন process_news_batch() এর ভিতরে
+প্রতিটা post এর পর কল হয়।
+
+Delay কীভাবে ঠিক হয় (DELAY_TIERS):
+  - ৫৫% সময়    → ১ থেকে ২.৫ মিনিট (60-150 সেকেন্ড)   [বেশিরভাগ পোস্ট]
+  - ৩০% সময়    → ২.৫ থেকে ৫ মিনিট (150-300 সেকেন্ড)   [মাঝেমধ্যে]
+  - ১৫% সময়    → ৫ থেকে ৮ মিনিট (300-480 সেকেন্ড)    [মাঝে মাঝে বেশি gap]
+
+শুধু এইটুকু হলেই একটা "খুব নিয়মিত" random pattern তৈরি হতে পারে, তাই
+এর সাথে আরেকটা layer যোগ করা হয়েছে:
+
+Long break (মানুষের মতো বিরতি):
+  - প্রতি ৬ থেকে ১০টা পোস্টের পর একটা লম্বা বিরতি (10-15 মিনিট) নেওয়া হয়।
+  - এই সংখ্যা (৬-১০) এবং break-এর দৈর্ঘ্য (10-15 মিনিট) প্রতিবার random ভাবে
+    নতুন করে বাছাই হয়, তাই এটাও একটা fixed pattern হয়ে যায় না।
+
+ফলাফল: প্রতিটা পোস্টের মাঝে গ্যাপ কখনো ১ মিনিট, কখনো ৩ মিনিট, কখনো ৫ মিনিট,
+কখনো ৮ মিনিট, আবার মাঝে মাঝে ১০-১৫ মিনিটের একটা বড় বিরতি — এইভাবে পুরো
+posting behavior মানুষের হাতে পোস্ট করার মতো অনিয়মিত (irregular) দেখায়,
+কোনো সুনির্দিষ্ট bot-এর মতো টাইমার/schedule ধরা পড়ে না।
+
+Code এ কোথায় আছে:
+-------------------
+  - DELAY_TIERS, LONG_BREAK_RANGE, LONG_BREAK_EVERY_POSTS → facebook_news_poster.py
+    এর উপরের দিকে config হিসেবে আছে, দরকার হলে মিনিট/সেকেন্ড এখান থেকেই
+    পরিবর্তন করা যাবে।
+  - pick_post_delay_seconds() → weight অনুযায়ী কোন tier থেকে delay হবে
+    তা ঠিক করে।
+  - wait_before_next_post() → প্রতিটা পোস্টের পর কল হয়, প্রতি ৬-১০ পোস্টে
+    একবার long break নেয়, বাকি সময় normal tier থেকে delay নেয়, এবং
+    time.sleep() দিয়ে actual অপেক্ষা করে।
+  - process_news_batch() → generate_facebook_post() কল করার পর
+    try/except/finally ব্লকে wait_before_next_post() কল করা হয় (post
+    সফল হোক বা fail হোক, দুই ক্ষেত্রেই wait হবে, কারণ Facebook এন্ডপয়েন্টে
+    request তো গেছেই)। শুধু delete_news_archive() (যেটা Facebook এ post করে
+    না, শুধু নিজেদের DB থেকে entry মুছে) এর পরে এই delay লাগানো হয়নি, কারণ
+    এতে Facebook rate limit এর সাথে কোনো সম্পর্ক নেই।
+
+মনে রাখার বিষয়:
+-----------------
+  - এই delay গুলো script চলার সময় (runtime) কার্যকর হবে, মানে বেশি news item
+    থাকলে পুরো batch process হতে আগের চেয়ে বেশি সময় লাগবে — এটাই ইচ্ছাকৃত,
+    কারণ Facebook restriction না খাওয়াটাই মূল উদ্দেশ্য।
+  - যদি ভবিষ্যতে restriction আবার আসে, তাহলে DELAY_TIERS এর range এবং
+    LONG_BREAK_RANGE বাড়িয়ে দিলেই gap আরও বড় হবে।

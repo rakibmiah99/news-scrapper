@@ -1,0 +1,26 @@
+[
+    {
+        "website_name": "ittefaq",
+        "news_id": "101",
+        "title": "Bangladesh wins the series decider",
+        "description": "A short summary of the match.",
+        "image_thumbnail": "https://example.com/images/thumb-101.jpg",
+        "published_at": "2026-09-04 10:00:00"
+    },
+    {
+        "website_name": "ittefaq",
+        "news_id": "102",
+        "title": "Government announces new policy",
+        "description": "A short summary of the policy.",
+        "image_thumbnail": "https://example.com/images/thumb-102.jpg",
+        "published_at": "2026-09-04 12:30:00"
+    },
+    {
+        "website_name": "ittefaq",
+        "news_id": "55",
+        "title": "Weather update for the week",
+        "description": null,
+        "image_thumbnail": null,
+        "published_at": null
+    }
+]
