@@ -1,0 +1,127 @@
+===================================================================
+ SELENIUM HUMAN-VISIT SCRIPTS - USAGE GUIDE
+===================================================================
+
+FOLDER: A:\Seleniu
+
+FILES IN THIS FOLDER
+-------------------------------------------------------------------
+- human-visit-proxy.py   -> main/latest script (proxy + domain-only
+                             link clicking + headless yes/no prompt)
+- proxies.jsonl          -> proxy list used by human-visit-proxy.py
+- human-visit.py         -> simple version, no proxy, fixed link list
+- human-visit-random.py  -> simple version, shuffles link order,
+                             clicks one internal link per page
+- human_browse.py        -> older version, clicks then goes back()
+                             with driver.back()
+
+All scripts require:
+  pip install selenium
+(Selenium 4.6+ auto-downloads the matching chromedriver, so no
+manual chromedriver setup is needed. Google Chrome must be
+installed on the machine.)
+
+===================================================================
+ 1. HOW TO RUN human-visit-proxy.py (recommended / latest)
+===================================================================
+
+Basic run (will ask a question):
+    python human-visit-proxy.py
+
+It will prompt:
+    Browser open korte chan? (yes/no):
+
+  - yes -> Chrome browser will actually open on screen (visible mode)
+  - no  -> runs headless, no visible window (runs in background)
+
+To SKIP the prompt, pass yes/no directly as an argument:
+    python human-visit-proxy.py yes     -> always visible, no prompt
+    python human-visit-proxy.py no      -> always headless, no prompt
+
+Help:
+    python human-visit-proxy.py --help
+
+===================================================================
+ 2. WHAT human-visit-proxy.py DOES
+===================================================================
+
+For every URL in the LINKS list (top of the file):
+  1. Picks a random proxy from proxies.jsonl.
+  2. Opens Chrome through that proxy (auth handled automatically
+     via a temporary generated Chrome extension - no manual proxy
+     login popup appears).
+  3. Opens the URL and scrolls up/down like a human for a random
+     15-35 seconds (MIN_STAY / MAX_STAY).
+  4. Finds all <a> links on the page, but ONLY keeps links whose
+     domain is takebackbangladesh.com (or www.takebackbangladesh.com
+     / any subdomain of it). Links to other domains, mailto:, tel:,
+     javascript:, and #anchors are ignored.
+  5. Randomly clicks 2-4 of those in-domain links (MIN_CLICKS /
+     MAX_CLICKS), scrolling/dwelling on each page after every click.
+  6. Closes the browser, waits 5-10 seconds, then moves to the next
+     URL with a new random proxy.
+
+===================================================================
+ 3. PROXIES FILE (proxies.jsonl)
+===================================================================
+
+Location: A:\Seleniu\proxies.jsonl
+Format:   ONE proxy per line, as JSON, like this:
+
+    {"proxy": "username:password@host:port"}
+
+Example (already in the file):
+    {"proxy": "u113ieyd01k-country-BD:t2el42hrhn7v@resi-bridge-us.rainproxy.io:1111"}
+
+To add more proxies, just add more lines in the same format.
+To use different proxies, replace the username:password@host:port
+part on each line. Do not change the "proxy" key name.
+
+===================================================================
+ 4. SETTINGS YOU CAN TWEAK (top of human-visit-proxy.py)
+===================================================================
+
+  LINKS           -> list of starting URLs to visit
+  PROXIES_FILE    -> path to the proxies.jsonl file (default: proxies.jsonl)
+  ALLOWED_DOMAIN  -> only links on this domain get clicked
+                     (currently: takebackbangladesh.com)
+  MIN_STAY/MAX_STAY       -> how long (seconds) to stay/scroll on each page
+  MIN_SCROLL/MAX_SCROLL   -> scroll distance in pixels per scroll step
+  MIN_CLICKS/MAX_CLICKS   -> how many in-domain links to click per visit
+
+===================================================================
+ 5. OTHER SCRIPTS (quick reference)
+===================================================================
+
+human-visit.py
+  - Visits the fixed LINKS list in order, no proxy, always visible
+    browser (headless line is commented out in the file).
+
+human-visit-random.py
+  - Shuffles LINKS order each run, clicks one internal link
+    (same domain as BASE_DOMAIN) per page using JS click, then
+    keeps scrolling on the current page (does not go back).
+
+human_browse.py
+  - Visits LINKS in shuffled order, clicks 1-3 random links per
+    page (any domain, since it does not filter by domain), then
+    uses driver.back() to return before moving to the next link.
+
+These three do not use proxies and do not have the yes/no
+visible/headless prompt - only human-visit-proxy.py has that.
+
+===================================================================
+ 6. TROUBLESHOOTING
+===================================================================
+
+- "chromedriver" errors -> make sure Google Chrome is installed
+  and up to date; Selenium 4.6+ downloads the matching driver
+  automatically the first time you run the script.
+- Proxy not working / auth popup appears -> double check the
+  username:password@host:port format in proxies.jsonl, no extra
+  spaces, and that the proxy is active.
+- No links get clicked ("No internal link found to click.") ->
+  the page has no <a> tags pointing to ALLOWED_DOMAIN; check the
+  page manually or adjust ALLOWED_DOMAIN.
+- Headless mode + proxy extension -> uses "--headless=new" so the
+  proxy extension still loads; requires a reasonably recent Chrome.
