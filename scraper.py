@@ -23,10 +23,32 @@ API_BASE_URL = "https://www.takebackbangladesh.com/api"
 LAST_NEWS_ID_URL = f"{API_BASE_URL}/news-archives/last-news-id"
 BULK_INSERT_URL = f"{API_BASE_URL}/news-archives-bulk-store"
 
+# ---------------------------------------------------------------------------
+# ittefaq.com.bd blocks requests that always look like the same browser.
+# Rotate a random realistic header set (loaded from browser_headers.json) on
+# every scrape request so it looks like different visitors instead of one
+# fixed bot signature.
+# ---------------------------------------------------------------------------
+BROWSER_HEADERS_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "browser_headers.json"
+)
+
+
+def load_scrape_headers_pool():
+    with open(BROWSER_HEADERS_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+SCRAPE_HEADERS_POOL = load_scrape_headers_pool()
+
+
+def get_scrape_headers():
+    return random.choice(SCRAPE_HEADERS_POOL)
+
 
 def fetch_page(news_id, timeout=10):
     url = BASE_URL.format(news_id=news_id)
-    response = requests.get(url, headers=HEADERS, timeout=timeout)
+    response = requests.get(url, headers=get_scrape_headers(), timeout=timeout)
     response.raise_for_status()
     return response.text
 
