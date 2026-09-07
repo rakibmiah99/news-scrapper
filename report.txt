@@ -1,65 +1,57 @@
-image_thumbnail NULL — Diagnostic Report
-=========================================
+Problem
+-------
+scraper.py চালালে proxy দিয়ে request করলে ittefaq.com.bd সবসময় "403 Client Error: Forbidden"
+রিটার্ন করছে, কিন্তু একই news_id-তে proxy ছাড়া (direct, নিজের নেটওয়ার্ক থেকে) request করলে
+ঠিকমতো পেজ লোড হচ্ছে। proxies.jsonl-এ থাকা ৪টি proxy-ই (31.59.20.176, 45.38.107.97,
+198.105.121.200, 64.137.96.74) একই user (gkxotuvl) এর অধীনে থাকা datacenter proxy — এবং
+৪টি-ই একই ভাবে ব্লক হচ্ছে।
 
-Test URL: https://www.ittefaq.com.bd/807751/test-news-title
-Fetched with: requests.get() + normal browser User-Agent
-Status code: 200, page length: 153346 chars (page loads fine, not blocked)
+Why this happens (root cause)
+------------------------------
+এটা headers বা User-Agent এর সমস্যা না — HEADERS আগে থেকেই ঠিক আছে এবং ওই একই headers দিয়ে
+direct connection কাজ করছে। ফারাকটা শুধু IP address। অর্থাৎ ব্লকটা application-level (title/
+description missing ইত্যাদি) না, এটা network/IP-level ব্লক:
 
-STEP 1 — Does .featured_image exist on the page?
-  soup.find_all(class_="featured_image") -> 1 element found.
-  Tag: <div class="featured_image">
+1. ittefaq.com.bd সম্ভবত Cloudflare বা এই ধরনের একটা WAF/anti-bot layer ব্যবহার করে, যেটা প্রতিটা
+   incoming IP-র "IP reputation" চেক করে (datacenter vs residential, ASN, আগে থেকে abuse রিপোর্ট
+   হয়েছে কিনা ইত্যাদি) — এটা একটা IP intelligence database (যেমন Cloudflare-এর নিজস্ব বা
+   IPQualityScore-এর মতো সার্ভিস) থেকে আসে।
+2. এই ৪টি proxy একটা shared/datacenter proxy provider-এর (residential না) — মানে এই একই IP
+   গুলো আগে থেকেই অনেক scraper/bot ব্যবহার করেছে। ফলে ওই IP-গুলোর ASN/reputation আগে থেকেই
+   "known bot/proxy" হিসেবে flag হয়ে গেছে অনেক WAF vendor-এর ডাটাবেজে।
+3. তাই request এর headers, cookies, delay — সবকিছু ঠিক থাকলেও, শুধু IP reputation-এর কারণে
+   Cloudflare/WAF সরাসরি 403 রিটার্ন করে দিচ্ছে, page content পর্যন্ত পৌঁছানোর আগেই।
+4. উল্টোদিকে, তোমার নিজের বাসা/ISP-র IP (residential/home connection) সাধারণত "clean" থাকে,
+   তাই সেখান থেকে direct request গেলে block হচ্ছে না।
 
-STEP 2 — What is actually inside that div?
-  <div class="featured_image">
-    <span class="jwImgWrap" style="padding-bottom:56.25%">
-      <span data-ari='{"path":"media/2026/09/02/7ad2240829e723528cb5558a3141e69d-6a985f97c1357.jpg?jadewits_media_id=309103", ...}'>
-      </span>
-    </span>
-  </div>
+এর আগে hproxy.com থেকে fetch করা free datacenter SOCKS5 proxy দিয়েও একই রকম 403 পাওয়া গিয়েছিল
+(DigitalOcean, Performive ইত্যাদি datacenter ASN থেকে) — এটাই প্রমাণ করে যে সমস্যাটা proxy
+provider-নির্বিশেষে, IP-এর ধরনের (datacenter) সাথে সম্পর্কিত, কোনো নির্দিষ্ট provider এর বাগ না।
 
-  container.find_all("img") -> 0 <img> tags found.
+How to solve
+------------
+1. সবচেয়ে সহজ (এখন কাজ করছে): যেহেতু তোমার নিজের নেটওয়ার্ক থেকে direct request block হচ্ছে না,
+   এখন proxy ছাড়াই স্ক্রিপ্ট চালাও (proxies.jsonl খালি/সব লাইন commented রাখো)। কোড আগে থেকেই এই
+   fallback সাপোর্ট করে — jsonl-এ কোনো active proxy না থাকলে সরাসরি (proxy ছাড়া) request পাঠায়।
 
-ROOT CAUSE
-  There is NO <img> tag anywhere inside .featured_image in the raw server
-  HTML. Ittefaq's frontend (jquery.jw.ari.js, "jadewits" image widget) only
-  builds the real <img> element client-side with JavaScript, using the
-  image path stored as a JSON string in the `data-ari` attribute:
+2. যদি আসলেই proxy দরকার হয় (rate-limit এড়ানোর জন্য বা IP ঘন ঘন পাল্টানোর জন্য):
+   - Datacenter proxy বাদ দিয়ে residential বা mobile proxy ব্যবহার করো (যেমন Bright Data,
+     Oxylabs, Smartproxy, IPRoyal-এর residential plan)। এগুলো real ISP customer IP হওয়ায়
+     WAF সহজে এদের bot হিসেবে ধরতে পারে না।
+   - Free/shared datacenter proxy list (hproxy.com-এর মতো) এড়িয়ে চলো — এগুলোর বেশিরভাগ IP
+     আগে থেকেই বহু সাইটে flagged।
 
-    data-ari = {"path": "media/2026/09/02/<hash>.jpg?jadewits_media_id=309103",
-                "ratio": [16,9], "alt": "..."}
+3. proxy আসলে কী রিটার্ন করছে সেটা যাচাই করতে চাইলে সরাসরি curl দিয়ে টেস্ট করো:
+     curl -x http://gkxotuvl:tax4ke2ae1s9@31.59.20.176:6754 -I https://www.ittefaq.com.bd/808305/test-news-title
+   যদি এখানেও 403 আসে (যেমন এখন আসছে), তাহলে নিশ্চিত হওয়া যায় সমস্যাটা কোডে না, proxy IP-তে।
 
-  Because requests + BeautifulSoup never execute JavaScript, any selector
-  looking for an <img> tag (e.g. `.featured_image img`,
-  `.featured_image > span > a > img`) will always return None — that's
-  why image_thumbnail kept coming back null, regardless of how deep the
-  selector searched.
+4. যদি সাইটটা Cloudflare-এর JS challenge/CAPTCHA দেখায় (শুধু headers status code দেখলে বোঝা
+   যায় না, response body-তে "Just a moment...", "cf-mitigated" header, বা "cf-chl" শব্দ আছে
+   কিনা চেক করো) — সেক্ষেত্রে শুধু requests লাইব্রেরি দিয়ে কখনোই কাজ হবে না, real browser engine
+   (Playwright/Selenium/undetected-chromedriver) লাগবে যেটা JS execute করতে পারে।
 
-HOW THE FULL IMAGE URL IS BUILT
-  Confirmed by cross-referencing other real <img> tags on the same page
-  that DO use the same "media/..." path style with a full domain, e.g.:
-    https://cdn.ittefaqbd.com/contents/uploads/media/2022/06/09/...png
-    https://cdn.ittefaqbd.com/contents/uploads/media/2023/07/27/...png
-
-  So the CDN base is: https://cdn.ittefaqbd.com/contents/uploads/
-
-  Full image URL = CDN base + data-ari's "path" value:
-    https://cdn.ittefaqbd.com/contents/uploads/media/2026/09/02/7ad2240829e723528cb5558a3141e69d-6a985f97c1357.jpg?jadewits_media_id=309103
-
-  Verified with `curl -I` on this exact URL:
-    HTTP/2 200
-    content-type: image/jpeg
-  -> Confirmed real, loadable image.
-
-FIX APPLIED (scraper.py -> extract_image_thumbnail)
-  1. Find the .featured_image container.
-  2. If it contains a real <img> tag (some article types may render one
-     directly), use its src / data-src / data-original / data-lazy-src.
-  3. Otherwise, find the descendant tag carrying the `data-ari` attribute,
-     JSON-parse it, pull out "path", and prefix it with
-     "https://cdn.ittefaqbd.com/contents/uploads/".
-  4. Return None only if neither an <img> nor a usable data-ari JSON path
-     is found.
-
-VERIFIED RESULT
-  extract_image_thumbnail(soup) on the same live page now returns:
-    https://cdn.ittefaqbd.com/contents/uploads/media/2026/09/02/7ad2240829e723528cb5558a3141e69d-6a985f97c1357.jpg?jadewits_media_id=309103
+Recommendation
+--------------
+আপাতত proxy ব্যবহার বন্ধ রেখে direct request দিয়ে scrape চালিয়ে যাও (এখন যেটা কাজ করছে)। ভবিষ্যতে
+IP block হলে বা rate-limit লাগলে, তখন একটা paid residential proxy provider ব্যবহার করার কথা
+ভাবা যেতে পারে — datacenter proxy (free বা paid) এই সাইটের জন্য কাজ করবে না।

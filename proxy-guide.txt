@@ -1,0 +1,89 @@
+Request Example: 
+curl "https://hproxy.com/api/proxy-list?format=json&country=US&protocol=socks5"
+
+-- Response --
+
+[
+  {
+    "anonymity": "elite",
+    "asn": 216246,
+    "asn_org": "RU-AEZA-AS",
+    "city": "New York",
+    "country_code": "US",
+    "ip": "193.233.218.121",
+    "is_datacenter": true,
+    "last_alive_at": "2026-09-07T06:14:06.953854Z",
+    "last_verified_at": "2026-09-07T06:14:06.953854Z",
+    "latency_ms": 326,
+    "latitude": 40.750301361083984,
+    "longitude": -74.00140380859375,
+    "port": 1080,
+    "protocols": [
+      "socks5"
+    ],
+    "region": "New York",
+    "reliability": "stable",
+    "status": "alive",
+    "status_since": "2026-09-05T13:24:43.693141Z",
+    "uptime_24h": 100.0,
+    "uptime_7d": 97.8,
+    "uptime_pct": 97.83282,
+    "verification_count": 323
+  },
+  {
+    "anonymity": "elite",
+    "asn": 14061,
+    "asn_org": "DigitalOcean, LLC",
+    "city": "North Bergen",
+    "country_code": "US",
+    "ip": "67.207.92.87",
+    "is_datacenter": true,
+    "last_alive_at": "2026-09-07T06:14:24.344827Z",
+    "last_verified_at": "2026-09-07T06:14:24.344827Z",
+    "latency_ms": 549,
+    "latitude": 40.7963981628418,
+    "longitude": -74.02030181884766,
+    "port": 1088,
+    "protocols": [
+      "socks5"
+    ],
+    "region": "New Jersey",
+    "reliability": "reviving",
+    "status": "alive",
+    "status_since": "2026-09-07T05:55:34.595367Z",
+    "uptime_24h": 55.6,
+    "uptime_7d": 45.9,
+    "uptime_pct": 65.8642,
+    "verification_count": 1620
+  },
+  {
+    "anonymity": "elite",
+    "asn": 14061,
+    "asn_org": "DigitalOcean, LLC",
+    "city": "Clifton",
+    "country_code": "US",
+    "ip": "134.122.1.61",
+    "is_datacenter": true,
+    "last_alive_at": "2026-09-07T06:10:23.707931Z",
+    "last_verified_at": "2026-09-07T06:10:23.707931Z",
+    "latency_ms": 552,
+    "latitude": 40.83639907836914,
+    "longitude": -74.14029693603516,
+    "port": 11679,
+    "protocols": [
+      "socks5"
+    ],
+    "region": "New Jersey",
+    "reliability": "stable",
+    "status": "alive",
+    "status_since": "2026-08-23T03:52:06.772784Z",
+    "uptime_24h": 100.0,
+    "uptime_7d": 100.0,
+    "uptime_pct": 99.253296,
+    "verification_count": 6830
+  },
+  ...,
+  ....
+]
+
+--- 

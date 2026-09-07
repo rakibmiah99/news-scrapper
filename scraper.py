@@ -9,7 +9,14 @@ import time
 from datetime import datetime
 
 import requests
+import urllib3
 from bs4 import BeautifulSoup
+
+# Proxies fetched from proxy-guide.txt are often MITM/self-signed, which
+# fails TLS verification. We disable verification only for the proxied
+# scrape requests (never for our own API calls), so silence the resulting
+# per-request InsecureRequestWarning noise.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 WEBSITE_NAME = "ittefaq"
 BASE_URL = "https://www.ittefaq.com.bd/{news_id}/test-news-title"
@@ -24,33 +31,81 @@ LAST_NEWS_ID_URL = f"{API_BASE_URL}/news-archives/last-news-id"
 BULK_INSERT_URL = f"{API_BASE_URL}/news-archives-bulk-store"
 
 # ---------------------------------------------------------------------------
-# ittefaq.com.bd blocks requests that always look like the same browser.
-# Rotate a random realistic header set (loaded from browser_headers.json) on
-# every scrape request so it looks like different visitors instead of one
-# fixed bot signature.
+# Route scrape requests through proxies loaded from a local proxies.jsonl
+# file (one JSON object per line: {"proxy": "http://user:pass@host:port"}),
+# so they don't all come from this machine's IP.
 # ---------------------------------------------------------------------------
-BROWSER_HEADERS_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "browser_headers.json"
+PROXIES_JSONL_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "proxies.jsonl"
 )
 
-
-def load_scrape_headers_pool():
-    with open(BROWSER_HEADERS_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+_proxy_pool = []
+_dead_proxies = set()
 
 
-SCRAPE_HEADERS_POOL = load_scrape_headers_pool()
+def load_proxy_pool():
+    if not os.path.exists(PROXIES_JSONL_PATH):
+        return []
+    proxies = []
+    with open(PROXIES_JSONL_PATH, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("//") or line.startswith("#"):
+                continue
+            try:
+                proxy = json.loads(line).get("proxy")
+            except json.JSONDecodeError:
+                continue
+            if proxy:
+                proxies.append(proxy)
+    return proxies
 
 
-def get_scrape_headers():
-    return random.choice(SCRAPE_HEADERS_POOL)
+def refresh_proxy_pool():
+    global _proxy_pool, _dead_proxies
+    _proxy_pool = load_proxy_pool()
+    _dead_proxies = set()
+    print(f"Loaded {len(_proxy_pool)} proxies from {PROXIES_JSONL_PATH}")
 
 
-def fetch_page(news_id, timeout=10):
+refresh_proxy_pool()
+
+
+def get_random_proxy():
+    """Return (proxy_url, requests-proxies-dict) for a random live proxy, or (None, None)."""
+    live = [p for p in _proxy_pool if p not in _dead_proxies]
+    if not live:
+        refresh_proxy_pool()
+        live = [p for p in _proxy_pool if p not in _dead_proxies]
+    if not live:
+        return None, None
+    proxy = random.choice(live)
+    return proxy, {"http": proxy, "https": proxy}
+
+
+def mark_proxy_dead(proxy):
+    _dead_proxies.add(proxy)
+
+
+def fetch_page(news_id, timeout=15, max_proxy_attempts=6):
     url = BASE_URL.format(news_id=news_id)
-    response = requests.get(url, headers=get_scrape_headers(), timeout=timeout)
-    response.raise_for_status()
-    return response.text
+    last_exc = None
+    for _ in range(max_proxy_attempts):
+        proxy, proxies = get_random_proxy()
+        try:
+            response = requests.get(
+                url, headers=HEADERS, proxies=proxies, timeout=timeout, verify=False
+            )
+            response.raise_for_status()
+            return response.text
+        except requests.RequestException as exc:
+            last_exc = exc
+            if proxy:
+                print(f"[{news_id}] proxy {proxy} failed ({exc}); trying another proxy...")
+                mark_proxy_dead(proxy)
+            else:
+                print(f"[{news_id}] direct request failed ({exc})")
+    raise last_exc
 
 
 def get_last_archive_news_id(website_name):
@@ -64,20 +119,9 @@ def get_last_archive_news_id(website_name):
     return int(response.json()["last_archive_news_id"])
 
 
-def bulk_insert(records):
-    response = requests.post(BULK_INSERT_URL, json=records, headers=HEADERS, timeout=30)
+def insert_record(record):
+    response = requests.post(BULK_INSERT_URL, json=[record], headers=HEADERS, timeout=30)
     return response
-
-
-def load_jsonl(path):
-    if not os.path.exists(path):
-        return []
-    with open(path, "r", encoding="utf-8") as f:
-        return [json.loads(line) for line in f if line.strip()]
-
-
-def clear_file(path):
-    open(path, "w", encoding="utf-8").close()
 
 
 def extract_title(soup):
@@ -171,7 +215,7 @@ def scrape_news(news_id):
     }
 
 
-def run(start_id, end_id, output_path, batch_size, max_consecutive_failures, delay_range):
+def run(start_id, end_id, output_path, max_consecutive_failures, delay_range):
     if start_id is not None:
         news_id = start_id
     else:
@@ -180,27 +224,10 @@ def run(start_id, end_id, output_path, batch_size, max_consecutive_failures, del
         print(f"last_archive_news_id={last_id} -> starting at news_id={news_id}")
 
     consecutive_failures = 0
-    batch_count = 0
-
-    def flush_batch():
-        nonlocal batch_count
-        records = load_jsonl(output_path)
-        if not records:
-            return True
-        response = bulk_insert(records)
-        if 200 <= response.status_code < 300:
-            clear_file(output_path)
-            print(f"Bulk inserted {len(records)} record(s), cleared {output_path}")
-            batch_count = 0
-            return True
-        print(f"Bulk insert FAILED: status={response.status_code}, body={response.text[:500]}")
-        print(f"{len(records)} unsent record(s) remain in {output_path} for retry.")
-        return False
 
     while True:
         if end_id is not None and news_id > end_id:
             print(f"Reached end_id={end_id}. Stopping.")
-            flush_batch()
             break
 
         try:
@@ -217,25 +244,20 @@ def run(start_id, end_id, output_path, batch_size, max_consecutive_failures, del
             print(f"[{news_id}] invalid/empty page, skipping "
                   f"({consecutive_failures}/{max_consecutive_failures})")
             if end_id is None and consecutive_failures >= max_consecutive_failures:
-                print(f"Hit {max_consecutive_failures} consecutive invalid pages. "
-                      f"Flushing {batch_count} pending record(s) and stopping.")
-                flush_batch()
+                print(f"Hit {max_consecutive_failures} consecutive invalid pages. Stopping.")
                 break
         else:
             consecutive_failures = 0
-            with open(output_path, "a", encoding="utf-8") as out_file:
-                out_file.write(json.dumps(record, ensure_ascii=False) + "\n")
-            batch_count += 1
-            print(f"[{news_id}] saved ({batch_count}/{batch_size}): {record['title']}")
-
-            if batch_count >= batch_size:
-                if flush_batch():
-                    last_id = get_last_archive_news_id(WEBSITE_NAME)
-                    print(f"Resynced from API: last_archive_news_id={last_id}")
-                    news_id = last_id
-                else:
-                    print("Stopping due to bulk insert failure.")
-                    break
+            response = insert_record(record)
+            if 200 <= response.status_code < 300:
+                print(f"[{news_id}] stored: {record['title']}")
+            else:
+                print(f"[{news_id}] insert FAILED: status={response.status_code}, "
+                      f"body={response.text[:500]}")
+                with open(output_path, "a", encoding="utf-8") as out_file:
+                    out_file.write(json.dumps(record, ensure_ascii=False) + "\n")
+                print(f"Saved failed record to {output_path} for retry. Stopping.")
+                break
 
         news_id += 1
         time.sleep(random.uniform(*delay_range))
@@ -250,9 +272,8 @@ def parse_args():
                          help="Ending news_id (inclusive). If omitted, runs until "
                               "consecutive invalid pages are hit.")
     parser.add_argument("--output", default="ittefaq_news.jsonl",
-                         help="Path to output .jsonl file")
-    parser.add_argument("--batch-size", type=int, default=50,
-                         help="Number of scraped news to accumulate before bulk-inserting")
+                         help="Path to .jsonl file where records are saved if a "
+                              "server insert fails, for later retry")
     parser.add_argument("--max-consecutive-failures", type=int, default=15,
                          help="Stop after this many consecutive invalid pages "
                               "(only used when --end-id is not set)")
@@ -267,7 +288,6 @@ def main():
         start_id=args.start_id,
         end_id=args.end_id,
         output_path=args.output,
-        batch_size=args.batch_size,
         max_consecutive_failures=args.max_consecutive_failures,
         delay_range=(args.delay_min, args.delay_max),
     )
