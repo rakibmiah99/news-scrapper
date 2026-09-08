@@ -12,19 +12,11 @@ from selenium.common.exceptions import (
 )
 
 LINKS = [
-    "https://www.agamirsomoy.com/",
-    "https://www.agamirsomoy.com/national/anptdc5aubqa",
-    "https://www.agamirsomoy.com/entertainment/xcy0bvnfgwul",
-    "https://www.agamirsomoy.com/lifestyle/9mpicj1jacmq",
-    "https://www.agamirsomoy.com/feature/science-technology/dv6z2jp2gedz",
-    "https://www.agamirsomoy.com/video/psj7xmcepiam",
-    "https://www.agamirsomoy.com/world/middle-east/vyur2fdi6h4r",
-    "https://www.agamirsomoy.com/country/5mkptocsgzi1",
-    "https://www.agamirsomoy.com/world/clz0fj03zn3q",
-    "https://www.agamirsomoy.com/national/parliament/apmbt56xviki",
+    "https://www.ittefaq.com.bd/",
+    "https://www.ittefaq.com.bd/808586/%E0%A6%AC%E0%A7%9C-%E0%A6%B6%E0%A6%B9%E0%A6%B0-%E0%A6%A8%E0%A7%9F-%E0%A6%AE%E0%A6%BE%E0%A6%A8%E0%A6%AC%E0%A6%BF%E0%A6%95-%E0%A6%93-%E0%A6%AA%E0%A6%B0%E0%A6%BF%E0%A6%AC%E0%A7%87%E0%A6%B6%E0%A6%AC%E0%A6%BE%E0%A6%A8%E0%A7%8D%E0%A6%A7%E0%A6%AC-%E0%A6%A8%E0%A6%97%E0%A6%B0%E0%A6%AC%E0%A7%8D%E0%A6%AF%E0%A6%AC%E0%A6%B8%E0%A7%8D%E0%A6%A5%E0%A6%BE-%E0%A6%97%E0%A7%9C%E0%A7%87",
 ]
 
-BASE_DOMAIN = "agamirsomoy.com"
+BASE_DOMAIN = "ittefaq.com.bd"
 
 MIN_STAY = 15
 MAX_STAY = 35

@@ -15,20 +15,14 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
 )
 
-
 LINKS = [
-    "https://www.takebackbangladesh.com/",
-    "https://www.takebackbangladesh.com/news/5bbrsude9luu",
-    "https://www.takebackbangladesh.com/news/ew0m3wljc6kk",
-    "https://www.takebackbangladesh.com/news/8wcjqr7b3zzp",
-    "https://www.takebackbangladesh.com/news/g5fp34eppvpe",
-    "https://www.takebackbangladesh.com/news/wvt2z53sicnw",
-    "https://www.takebackbangladesh.com/news/m1uncuyhfpcu"
+    "https://www.ittefaq.com.bd/",
+    "https://www.ittefaq.com.bd/808586/%E0%A6%AC%E0%A7%9C-%E0%A6%B6%E0%A6%B9%E0%A6%B0-%E0%A6%A8%E0%A7%9F-%E0%A6%AE%E0%A6%BE%E0%A6%A8%E0%A6%AC%E0%A6%BF%E0%A6%95-%E0%A6%93-%E0%A6%AA%E0%A6%B0%E0%A6%BF%E0%A6%AC%E0%A7%87%E0%A6%B6%E0%A6%AC%E0%A6%BE%E0%A6%A8%E0%A7%8D%E0%A6%A7%E0%A6%AC-%E0%A6%A8%E0%A6%97%E0%A6%B0%E0%A6%AC%E0%A7%8D%E0%A6%AF%E0%A6%AC%E0%A6%B8%E0%A7%8D%E0%A6%A5%E0%A6%BE-%E0%A6%97%E0%A7%9C%E0%A7%87",
 ]
 
 PROXIES_FILE = "proxies.jsonl"
 
-ALLOWED_DOMAIN = "takebackbangladesh.com"
+ALLOWED_DOMAIN = "ittefaq.com.bd"
 
 MIN_STAY = 15
 MAX_STAY = 35
