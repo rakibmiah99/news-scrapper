@@ -15,7 +15,6 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
 )
 
-
 LINKS = [
     "https://www.takebackbangladesh.com/news/bderwfcmmbrr",
     "https://www.takebackbangladesh.com/news/2wn0omgzkkum",
@@ -25,7 +24,7 @@ LINKS = [
 
 PROXIES_FILE = "proxies.jsonl"
 
-ALLOWED_DOMAIN = "takebackbangladesh.com"
+ALLOWED_DOMAIN = "takebackbangladesh"
 
 MIN_STAY = 15
 MAX_STAY = 35
