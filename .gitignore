@@ -4,3 +4,6 @@ venv/
 __pycache__/
 ittefaq_news.jsonl
 /ittefaq_news.jsonl
+FGP/fb_accounts.jsonl
+FGP/fb_profiles/
+FGP/fb_debug/

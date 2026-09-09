@@ -5,15 +5,9 @@ import re
 import shutil
 import tempfile
 import time
-from urllib.parse import urlparse
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import (
-    ElementClickInterceptedException,
-    StaleElementReferenceException,
-)
 
 
 LINKS = [
@@ -25,16 +19,20 @@ LINKS = [
 
 PROXIES_FILE = "proxies.jsonl"
 
-ALLOWED_DOMAIN = "takebackbangladesh.com"
-
 MIN_STAY = 15
 MAX_STAY = 35
 
-MIN_SCROLL = 200
-MAX_SCROLL = 700
+MIN_CLICKS = 1
+MAX_CLICKS = 2
 
-MIN_CLICKS = 2
-MAX_CLICKS = 4
+# Fixed on-screen position to move the cursor to and click (viewport pixels).
+CLICK_WIDTH = 900
+CLICK_HEIGHT = 220
+
+# Saves a grid-overlay screenshot before clicking so you can read off the
+# right CLICK_WIDTH / CLICK_HEIGHT values.
+SAVE_CLICK_PREVIEW = True
+PREVIEW_GRID_STEP = 100
 
 PROXY_RE = re.compile(
     r"^(?P<username>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)$"
@@ -70,98 +68,117 @@ def random_wait(a=1, b=3):
     time.sleep(random.uniform(a, b))
 
 
-def human_scroll(driver, duration):
-    end = time.time() + duration
+def save_position_preview(driver, path, grid_step=PREVIEW_GRID_STEP):
 
-    while time.time() < end:
+    driver.execute_script(
+        """
+        (function(step) {
+            document.querySelectorAll('.__coord_grid_overlay').forEach(function(el){el.remove();});
 
-        direction = random.choice([1, 1, 1, -1])
+            var overlay = document.createElement('div');
+            overlay.className = '__coord_grid_overlay';
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.zIndex = '2147483647';
+            overlay.style.pointerEvents = 'none';
 
-        pixels = random.randint(MIN_SCROLL, MAX_SCROLL)
+            var w = window.innerWidth;
+            var h = window.innerHeight;
 
-        driver.execute_script(
-            f"""
-            window.scrollBy({{
-                top:{pixels * direction},
-                left:0,
-                behavior:'smooth'
-            }});
-            """
-        )
+            for (var x = 0; x <= w; x += step) {
+                var vLine = document.createElement('div');
+                vLine.style.position = 'absolute';
+                vLine.style.left = x + 'px';
+                vLine.style.top = '0';
+                vLine.style.width = '1px';
+                vLine.style.height = h + 'px';
+                vLine.style.background = 'rgba(255,0,0,0.6)';
+                overlay.appendChild(vLine);
 
-        time.sleep(random.uniform(0.8, 2.5))
+                var xLabel = document.createElement('div');
+                xLabel.textContent = x;
+                xLabel.style.position = 'absolute';
+                xLabel.style.left = (x + 2) + 'px';
+                xLabel.style.top = '0';
+                xLabel.style.color = 'red';
+                xLabel.style.fontSize = '10px';
+                xLabel.style.background = 'white';
+                overlay.appendChild(xLabel);
+            }
 
+            for (var y = 0; y <= h; y += step) {
+                var hLine = document.createElement('div');
+                hLine.style.position = 'absolute';
+                hLine.style.top = y + 'px';
+                hLine.style.left = '0';
+                hLine.style.width = w + 'px';
+                hLine.style.height = '1px';
+                hLine.style.background = 'rgba(0,0,255,0.6)';
+                overlay.appendChild(hLine);
 
-def is_allowed_domain(url):
+                var yLabel = document.createElement('div');
+                yLabel.textContent = y;
+                yLabel.style.position = 'absolute';
+                yLabel.style.top = y + 'px';
+                yLabel.style.left = '0';
+                yLabel.style.color = 'blue';
+                yLabel.style.fontSize = '10px';
+                yLabel.style.background = 'white';
+                overlay.appendChild(yLabel);
+            }
 
-    try:
-        netloc = urlparse(url).netloc.lower()
-    except Exception:
-        return False
-
-    if not netloc:
-        return False
-
-    return (
-        netloc == ALLOWED_DOMAIN
-        or netloc == f"www.{ALLOWED_DOMAIN}"
-        or netloc.endswith(f".{ALLOWED_DOMAIN}")
+            document.body.appendChild(overlay);
+        })(arguments[0]);
+        """,
+        grid_step,
     )
 
+    driver.save_screenshot(path)
 
-def get_internal_links(driver):
+    driver.execute_script(
+        "document.querySelectorAll('.__coord_grid_overlay').forEach(function(el){el.remove();});"
+    )
 
-    links = []
-
-    for a in driver.find_elements(By.TAG_NAME, "a"):
-
-        try:
-            href = a.get_attribute("href")
-        except StaleElementReferenceException:
-            continue
-
-        if not href:
-            continue
-
-        if href.startswith(("javascript:", "mailto:", "tel:", "#")):
-            continue
-
-        if is_allowed_domain(href):
-            links.append((a, href))
-
-    return links
+    print(f"Position preview saved: {path} (grid every {grid_step}px)")
 
 
-def click_internal_link(driver):
-
-    current_url = driver.current_url.rstrip("/")
-
-    links = get_internal_links(driver)
-
-    candidates = [
-        (el, href) for el, href in links if href.rstrip("/") != current_url
-    ]
-
-    if not candidates:
-        return False
-
-    el, href = random.choice(candidates)
+def move_cursor_and_click(driver, x=CLICK_WIDTH, y=CLICK_HEIGHT, steps=20):
 
     try:
 
-        driver.execute_script(
-            "arguments[0].scrollIntoView({block:'center', behavior:'smooth'});",
-            el,
+        window_size = driver.get_window_size()
+
+        start_x = random.randint(0, window_size["width"])
+        start_y = random.randint(0, window_size["height"])
+
+        for step in range(1, steps + 1):
+
+            cur_x = start_x + (x - start_x) * step / steps
+            cur_y = start_y + (y - start_y) * step / steps
+
+            driver.execute_cdp_cmd(
+                "Input.dispatchMouseEvent",
+                {"type": "mouseMoved", "x": cur_x, "y": cur_y},
+            )
+
+            time.sleep(random.uniform(0.01, 0.04))
+
+        random_wait(0.3, 0.8)
+
+        driver.execute_cdp_cmd(
+            "Input.dispatchMouseEvent",
+            {"type": "mousePressed", "x": x, "y": y, "button": "left", "clickCount": 1},
         )
 
-        random_wait(1, 2)
+        driver.execute_cdp_cmd(
+            "Input.dispatchMouseEvent",
+            {"type": "mouseReleased", "x": x, "y": y, "button": "left", "clickCount": 1},
+        )
 
-        try:
-            el.click()
-        except (ElementClickInterceptedException, StaleElementReferenceException):
-            driver.execute_script("arguments[0].click();", el)
-
-        print(f"Clicked link : {href}")
+        print(f"Clicked at position: ({x}, {y})")
 
         random_wait(3, 6)
 
@@ -178,13 +195,7 @@ def browse_page(driver):
 
     total_time = random.randint(MIN_STAY, MAX_STAY)
 
-    start = time.time()
-
-    while time.time() - start < total_time:
-
-        human_scroll(driver, random.uniform(3, 7))
-
-        random_wait(2, 5)
+    time.sleep(total_time)
 
 
 def build_proxy_extension(proxy):
@@ -288,7 +299,7 @@ def create_driver(proxy, headless):
     return driver, plugin_dir
 
 
-def visit(url, proxy, headless):
+def visit(url, proxy, headless, preview_path=None):
 
     driver, plugin_dir = create_driver(proxy, headless)
 
@@ -301,16 +312,18 @@ def visit(url, proxy, headless):
 
         random_wait(3, 6)
 
+        if SAVE_CLICK_PREVIEW:
+            save_position_preview(driver, preview_path or "click_preview.png")
+
         browse_page(driver)
 
         clicks = random.randint(MIN_CLICKS, MAX_CLICKS)
 
         for _ in range(clicks):
 
-            clicked = click_internal_link(driver)
+            clicked = move_cursor_and_click(driver)
 
             if not clicked:
-                print("No internal link found to click.")
                 break
 
             browse_page(driver)
@@ -333,7 +346,7 @@ def visit(url, proxy, headless):
 def parse_args():
 
     parser = argparse.ArgumentParser(
-        description="Visit site with human-like scrolling/clicking via proxies."
+        description="Visit site and click a fixed on-screen position via proxies."
     )
 
     parser.add_argument(
@@ -369,11 +382,11 @@ def main():
 
     proxies = load_proxies()
 
-    for url in LINKS:
+    for index, url in enumerate(LINKS, start=1):
 
         proxy = random.choice(proxies)
 
-        visit(url, proxy, headless)
+        visit(url, proxy, headless, preview_path=f"click_preview_{index}.png")
 
         print("Browser Closed.")
 

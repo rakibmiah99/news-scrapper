@@ -1,0 +1,17 @@
+[
+    "https://www.facebook.com/groups/594751661176885"
+]
+
+eivabe ekadik group page er ami id dibo, 
+ei link gulute jabe jawar por tumi visible text write something diye search kore tar element -> parent -> parent click korbe 
+
+<div class="x1i10hfl x1ejq31n x18oe1m7 x1sy0etr xstzfhl x972fbf x10w94by x1qhh985 x14e42zd x9f619 x1ypdohk x3ct3a4 xdj266r x14z9mp xat24cr x1lziwak x16tdsg8 x1hl2dhg xggy1nq x87ps6o x1lku1pv x1a2a7pz x6s0dn4 xmjcpbm x12ol6y4 x180vkcf x1khw62d x709u02 x78zum5 x1q0g3np x1iyjqo2 x1nhvcw1 x1n2onr6 xt7dq6l x1ba4aug x1y1aw1k xpdmqnj xwib8y2 x1g0dm76" role="button" tabindex="0"><div class="xi81zsa x1lkfr7t xkjl1po x1mzt3pk xh8yej3 x13faqbe"><span class="x1lliihq x6ikm8r x10wlt62 x1n2onr6" style="-webkit-box-orient: vertical; -webkit-line-clamp: 2; display: -webkit-box;">Write something...</span></div><div class="x1ey2m1c xtijo5x x1o0tod xg01cxk x47corl x10l6tqk x13vifvy x1ebt8du x19991ni x1dhq9h x1fmog5m xu25z0z x140muxe xo1y3bh" role="none" data-visualcompletion="ignore" style="border-radius: 20px; inset: 0px;"></div></div>
+
+------Step 2  -- 
+
+click korar por ekta modal open hoi sekhane nicher element find korbe role=textbox and aria-placeholder=Write something and contenteditable="true" jodi true na thake true korbe, then tar vitor p > span a message ti likhbe.
+
+<div class="xzsf02u x1a2a7pz x1n2onr6 x14wi4xw x9f619 x1lliihq x5yr21d xh8yej3 notranslate" contenteditable="true" role="textbox" spellcheck="true" tabindex="0" aria-placeholder="Write something..." style="user-select: text; white-space: pre-wrap; word-break: break-word; font-size: 24px;" data-lexical-editor="true" data-interactable="|keydown||input||click|" data-auto-logging-id="feaf9e65"><p class="xdj266r x14z9mp xat24cr x1lziwak x16tdsg8" dir="auto"><span data-lexical-text="true">Hello World </span></p></div>
+
+
+---------------------
