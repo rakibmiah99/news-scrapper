@@ -258,72 +258,6 @@ def random_position_click(driver):
     return move_cursor_and_click(driver, x=x, y=y)
 
 
-def browse_external_tab(driver):
-    """Browse a page that just opened in a new tab: scroll it, dwell on it,
-    and click a couple of its visible links (any domain), the same way we
-    treat pages opened in the main tab."""
-
-    try:
-        random_wait(3, 6)
-
-        print(f"  New tab opened -> {driver.current_url}")
-
-        scroll_bottom_then_top(driver)
-        browse_page(driver)
-
-        target_clicks = random.randint(MIN_CLICKS, MAX_CLICKS)
-
-        for click_num in range(1, target_clicks + 1):
-
-            driver.execute_script("window.scrollTo(0, 0);")
-            random_wait(1, 2)
-
-            links = find_visible_target_links(driver, target_domain="")
-
-            if not links:
-                print("  No visible link found in new tab, stopping.")
-                break
-
-            chosen = random.choice(links)
-
-            print(f"  New-tab click {click_num}/{target_clicks} -> {chosen['href']}")
-
-            clicked = move_cursor_and_click(driver, x=chosen["x"], y=chosen["y"])
-
-            if not clicked:
-                break
-
-            random_wait(2, 4)
-
-            scroll_bottom_then_top(driver)
-            browse_page(driver)
-
-    except Exception as e:
-
-        print(f"  New tab browsing failed: {e}")
-
-
-def handle_new_tabs(driver, original_handle):
-    """If the last click opened one or more new tabs/windows, switch into
-    each, browse it like a real visitor, then close it and hand focus back
-    to the original tab so the main flow can keep going."""
-
-    new_handles = [h for h in driver.window_handles if h != original_handle]
-
-    for handle in new_handles:
-
-        driver.switch_to.window(handle)
-
-        browse_external_tab(driver)
-
-        try:
-            driver.close()
-        except Exception as e:
-            print(f"Could not close new tab: {e}")
-
-    driver.switch_to.window(original_handle)
-
-
 def browse_page(driver):
 
     total_time = random.randint(MIN_STAY, MAX_STAY)
@@ -470,8 +404,6 @@ def visit(url, proxy, headless, preview_path=None):
 
         driver.get(url)
 
-        original_handle = driver.current_window_handle
-
         random_wait(3, 6)
 
         # Impression: read the page (scroll down then back up) before any click.
@@ -482,14 +414,11 @@ def visit(url, proxy, headless, preview_path=None):
 
         if random.random() < RANDOM_CLICK_CHANCE:
             random_position_click(driver)
-            handle_new_tabs(driver, original_handle)
             random_wait(1, 2)
 
         browse_page(driver)
 
         target_clicks = random.randint(MIN_CLICKS, MAX_CLICKS)
-
-        fixed_position_clicked = False
 
         for click_num in range(1, target_clicks + 1):
 
@@ -501,23 +430,17 @@ def visit(url, proxy, headless, preview_path=None):
             links = find_visible_target_links(driver)
 
             if not links:
-                print(
-                    f"No visible {TARGET_DOMAIN} link found, falling back to "
-                    f"fixed position ({CLICK_WIDTH}, {CLICK_HEIGHT})."
-                )
-                clicked = move_cursor_and_click(driver, x=CLICK_WIDTH, y=CLICK_HEIGHT)
-                fixed_position_clicked = clicked
-            else:
-                chosen = random.choice(links)
+                print(f"No visible {TARGET_DOMAIN} link found to click, stopping.")
+                break
 
-                print(f"Click {click_num}/{target_clicks} -> {chosen['href']}")
+            chosen = random.choice(links)
 
-                clicked = move_cursor_and_click(driver, x=chosen["x"], y=chosen["y"])
+            print(f"Click {click_num}/{target_clicks} -> {chosen['href']}")
+
+            clicked = move_cursor_and_click(driver, x=chosen["x"], y=chosen["y"])
 
             if not clicked:
                 break
-
-            handle_new_tabs(driver, original_handle)
 
             random_wait(2, 4)
 
@@ -526,19 +449,9 @@ def visit(url, proxy, headless, preview_path=None):
 
             if random.random() < RANDOM_CLICK_CHANCE:
                 random_position_click(driver)
-                handle_new_tabs(driver, original_handle)
                 random_wait(1, 2)
 
             browse_page(driver)
-
-        # Guarantee: no matter how the link-driven clicks above went, click
-        # the fixed CLICK_WIDTH/CLICK_HEIGHT position at least once per visit
-        # before the browser closes, and track/log it explicitly.
-        if not fixed_position_clicked:
-            print(f"Tracking fixed-position click -> ({CLICK_WIDTH}, {CLICK_HEIGHT})")
-            if move_cursor_and_click(driver, x=CLICK_WIDTH, y=CLICK_HEIGHT):
-                handle_new_tabs(driver, original_handle)
-                random_wait(1, 2)
 
         print("Finished.")
 
